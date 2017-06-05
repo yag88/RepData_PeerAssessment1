@@ -1,16 +1,12 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 
 ## Loading and preprocessing the data
 
 Let's read the files (directly in the zip with *fread* and a call to command line)
 
-```{r echo = TRUE} 
+
+```r
 library(data.table)
 setwd("~/Documents/GitHub/RepData_PeerAssessment1")
 mydata <- fread('unzip -cq activity.zip', stringsAsFactors = FALSE)
@@ -34,7 +30,8 @@ From the first look at my data, we note that:
 We need a better way to measure the date/time (as POSIXlt uses 40 bytes per date,  I used *as.POSIXct* instead.)
 I combined date (type chr) and interval (type int) into a date-time format in a 4th column. I have to reformat the time string with leading 0 for the *strptime* or *as.POSIXct* function to work. 
 
-```{r echo = TRUE}
+
+```r
 mydata$mydatetime <- as.POSIXct(paste(mydata$date, formatC(mydata$interval, flag='0', width = 4)), "%Y-%m-%d %H%M", tz = "GMT")
 ```
 
@@ -46,9 +43,20 @@ mydata$mydatetime <- as.POSIXct(paste(mydata$date, formatC(mydata$interval, flag
 
 Only 53 days out of 61 are left after removing the NAs. *summary()* gives us useful information, particularly that the range goes to a bit more than 21,000.
 
-```{r echo =TRUE}
+
+```r
 mystepsperday<-aggregate(steps~date,sum,data=mydata)
 summary(mystepsperday)
+```
+
+```
+##      date               steps      
+##  Length:53          Min.   :   41  
+##  Class :character   1st Qu.: 8841  
+##  Mode  :character   Median :10765  
+##                     Mean   :10766  
+##                     3rd Qu.:13294  
+##                     Max.   :21194
 ```
 
 
@@ -57,21 +65,36 @@ summary(mystepsperday)
 
 NB: a histogram represents quantitative data on the x-axis, while a bar plot shows qualitative data. Here, the number of steps is a quantitative measure, so it's an histogram. We cut in bins of 1000 steps (by fixing the *binwidth* and one *boundary* to 0). 
 
-```{r echo=TRUE}
+
+```r
 library(ggplot2)
 ggplot(data=mystepsperday, aes(steps)) + 
       labs(x ="Nber of steps", y="Number of Days", title = "Distribution of Steps per Day") +
       geom_histogram(color="black", fill="red", binwidth = 1000 , boundary =0) 
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
 
 
 3. The mean and median were given by *summary*, we can recalculate them individually
 
-```{r echo=TRUE}
+
+```r
 #average steps per day and median steps per day
 mean(mystepsperday$steps)
+```
+
+```
+## [1] 10766.19
+```
+
+```r
 median(mystepsperday$steps)
+```
+
+```
+## [1] 10765
 ```
 
 
@@ -82,16 +105,32 @@ median(mystepsperday$steps)
 Then we plot it in a time series plot.
 For readibility, we're using hours in the x-axis (instead of the strange numerical format of *interval*)
 
-```{r echo =TRUE}
+
+```r
 myavginterval<-aggregate(steps~interval,mean,data=mydata)
 ## myavginterval$interval2 <- as.character(myavginterval$interval)
 myavginterval$hour <- floor(myavginterval$interval/100)+(myavginterval$interval%%100)/60
 summary(myavginterval)
+```
+
+```
+##     interval          steps              hour       
+##  Min.   :   0.0   Min.   :  0.000   Min.   : 0.000  
+##  1st Qu.: 588.8   1st Qu.:  2.486   1st Qu.: 5.979  
+##  Median :1177.5   Median : 34.113   Median :11.958  
+##  Mean   :1177.5   Mean   : 37.383   Mean   :11.958  
+##  3rd Qu.:1766.2   3rd Qu.: 52.835   3rd Qu.:17.938  
+##  Max.   :2355.0   Max.   :206.170   Max.   :23.917
+```
+
+```r
 ggplot(data=myavginterval, aes(x=hour, y=steps)) + 
       labs(x ="Moment of the Day (in 24hours)", y="Average Number of Steps", title = "Average Steps per Moment of the Day") +
       geom_line(color="blue", size =2) +
       coord_cartesian(xlim = c(0,24))
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
@@ -99,8 +138,13 @@ We see it graphically around 9 o'clock, and the summary function showed that max
 
 Let's have R find it for us: 
 
-```{r echo =TRUE}
+
+```r
 myavginterval[which.max(myavginterval$steps),"interval"]
+```
+
+```
+## [1] 835
 ```
 
 So the most active interval in the day, on average, is the 08:35 to 08:40 interval. 
@@ -113,13 +157,27 @@ So the most active interval in the day, on average, is the 08:35 to 08:40 interv
 We saw it in the initially *summary* : there are 2304 NAs observations. 
 Let's do it again.  
 
-```{r echo =TRUE}
+
+```r
 sum(is.na(mydata$steps))
 ```
 
+```
+## [1] 2304
+```
+
 By the way, it seems all those missing value come from the same 8 days. Let's check: 
-```{r echo =TRUE}
+
+```r
 table(mydata$date[is.na(mydata$steps)])
+```
+
+```
+## 
+## 2012-10-01 2012-10-08 2012-11-01 2012-11-04 2012-11-09 2012-11-10 
+##        288        288        288        288        288        288 
+## 2012-11-14 2012-11-30 
+##        288        288
 ```
 
 That was a correct intuition: 8 days with all their 288 step data missing = 2304.
@@ -135,16 +193,46 @@ Let's put this cleaned data in *myprocesseddata*.
 Then we look again at the histogram of total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. 
 
 
-```{r echo =TRUE}
+
+```r
 myprocesseddata <- mydata
 myprocesseddata$steps[is.na(mydata$steps)] <- myavginterval$steps
 mynewstepsperday<-aggregate(steps~date,sum,data=myprocesseddata)
 summary(mynewstepsperday)
+```
+
+```
+##      date               steps      
+##  Length:61          Min.   :   41  
+##  Class :character   1st Qu.: 9819  
+##  Mode  :character   Median :10766  
+##                     Mean   :10766  
+##                     3rd Qu.:12811  
+##                     Max.   :21194
+```
+
+```r
 ggplot(data=mynewstepsperday, aes(steps)) + 
       labs(x ="Nber of steps", y="Number of Days", title = "Distribution of Steps per Day") +
       geom_histogram(color="black", fill="red", binwidth = 1000 , boundary =0) 
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+```r
 mean(mynewstepsperday$steps)
+```
+
+```
+## [1] 10766.19
+```
+
+```r
 median(mynewstepsperday$steps)
+```
+
+```
+## [1] 10766.19
 ```
 
 
@@ -178,13 +266,30 @@ So we see the guy has been on average **more active on weekends** (mean 12407 st
 
 But this comes from our previous (unprocessed) data analysis. Let's reuse the *myprocesseddata* with the filled-in values, and create a new factor variable in the dataset with two levels – “weekday” and “weekend”. 
 
-``` {r echo = TRUE}
 
+```r
 mydata$weekday <- !(weekdays(mydata$mydatetime) %in% c("Sunday", "Saturday"))
 myavginterval$stepsWeekday <-aggregate(steps ~ interval ,mean,data=mydata[mydata$weekday])$steps
 myavginterval$stepsWeekend <-aggregate(steps ~ interval ,mean,data=mydata[!mydata$weekday])$steps
 
 summary(myavginterval)
+```
+
+```
+##     interval          steps              hour         stepsWeekday    
+##  Min.   :   0.0   Min.   :  0.000   Min.   : 0.000   Min.   :  0.000  
+##  1st Qu.: 588.8   1st Qu.:  2.486   1st Qu.: 5.979   1st Qu.:  2.218  
+##  Median :1177.5   Median : 34.113   Median :11.958   Median : 23.974  
+##  Mean   :1177.5   Mean   : 37.383   Mean   :11.958   Mean   : 35.338  
+##  3rd Qu.:1766.2   3rd Qu.: 52.835   3rd Qu.:17.938   3rd Qu.: 51.872  
+##  Max.   :2355.0   Max.   :206.170   Max.   :23.917   Max.   :234.103  
+##   stepsWeekend    
+##  Min.   :  0.000  
+##  1st Qu.:  1.107  
+##  Median : 32.036  
+##  Mean   : 43.078  
+##  3rd Qu.: 75.571  
+##  Max.   :175.000
 ```
 
 
@@ -193,22 +298,47 @@ Make a panel plot containing a time series plot (i.e. 𝚝𝚢𝚙𝚎 = "𝚕")
 Let's look at the activity patterns, and plot separately the average weekday and the average weekend day. 
 For this, we'll extend our *myavginterval* table with 2 columns, to include the averages for weekdays and for weekends.
 
-``` {r echo = TRUE}
 
+```r
 mydata$weekday <- weekdays(mydata$mydatetime) %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
 myavginterval$stepsWeekday <-aggregate(steps ~ interval ,mean,data=mydata[mydata$weekday])$steps
 myavginterval$stepsWeekend <-aggregate(steps ~ interval ,mean,data=mydata[!mydata$weekday])$steps
 
 summary(myavginterval)
- 
+```
+
+```
+##     interval          steps              hour         stepsWeekday    
+##  Min.   :   0.0   Min.   :  0.000   Min.   : 0.000   Min.   :  0.000  
+##  1st Qu.: 588.8   1st Qu.:  2.486   1st Qu.: 5.979   1st Qu.:  2.218  
+##  Median :1177.5   Median : 34.113   Median :11.958   Median : 23.974  
+##  Mean   :1177.5   Mean   : 37.383   Mean   :11.958   Mean   : 35.338  
+##  3rd Qu.:1766.2   3rd Qu.: 52.835   3rd Qu.:17.938   3rd Qu.: 51.872  
+##  Max.   :2355.0   Max.   :206.170   Max.   :23.917   Max.   :234.103  
+##   stepsWeekend    
+##  Min.   :  0.000  
+##  1st Qu.:  1.107  
+##  Median : 32.036  
+##  Mean   : 43.078  
+##  3rd Qu.: 75.571  
+##  Max.   :175.000
+```
+
+```r
 ggplot(data=melt(myavginterval[,names(myavginterval)!="interval"],id.vars="hour"), aes(x=hour, y = value, colour=variable)) +
       coord_cartesian(xlim = c(0,24)) +  geom_line(size =1) +          
       labs(x ="Moment of the Day (in 24hours)", y="Average Number of Steps", title = "Average Steps per Moment of the Day")
+```
 
+![](PA1_template_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
+```r
 ggplot(data=data.frame(hour=myavginterval$hour, stepsgap = myavginterval$stepsWeekend-myavginterval$stepsWeekday), aes(x=hour, y=stepsgap)) +
       coord_cartesian(xlim = c(0,24)) +  geom_line(size =2) +          
       labs(x ="Moment of the Day (in 24hours)", y="Average Number of Steps", title = "Difference between Weekdays and Weekends in average Steps per Moment of the Day")
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-12-2.png)<!-- -->
 
 So, by comparing the blue line against the green line, we conclude that the **activity patterns are clearly different**. 
 It's even more obvious when we look at the difference (Weekends-Weekdays), with the black line. On weekends: 
