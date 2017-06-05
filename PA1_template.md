@@ -32,7 +32,8 @@ I combined date (type chr) and interval (type int) into a date-time format in a 
 
 
 ```r
-mydata$mydatetime <- as.POSIXct(paste(mydata$date, formatC(mydata$interval, flag='0', width = 4)), "%Y-%m-%d %H%M", tz = "GMT")
+mydata$mydatetime <- as.POSIXct(paste(mydata$date, formatC(mydata$interval, flag='0', width = 4)),
+                                "%Y-%m-%d %H%M", tz = "GMT")
 ```
 
 ---
@@ -125,7 +126,8 @@ summary(myavginterval)
 
 ```r
 ggplot(data=myavginterval, aes(x=hour, y=steps)) + 
-      labs(x ="Moment of the Day (in 24hours)", y="Average Number of Steps", title = "Average Steps per Moment of the Day") +
+      labs(x ="Moment of the Day (in 24hours)", y="Average Number of Steps", 
+           title = "Average Steps per Moment of the Day") +
       geom_line(color="blue", size =2) +
       coord_cartesian(xlim = c(0,24))
 ```
@@ -248,29 +250,52 @@ Do these values differ from the estimates from the first part of the assignment?
 ## Are there differences in activity patterns between weekdays and weekends?
 
 
-First, let's have a look at our averages per day, by separating the weekdays (in blue) from the week-ends (in red). 
+First, let's have a look at our averages per day, by separating the weekdays (in blue) from the week-ends (in red). NB: this analysis was not requested in the assignement.
 
-``` { r echo = TRUE }
+
+```r
 mystepsperday$weekday <- weekdays(as.POSIXct(mystepsperday$date, "%Y-%m-%d", tz="GMT")) %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
       
 ggplot(data=mystepsperday, aes(x=date, y=steps, colour = weekday)) + 
-      labs(x ="Day", y="Average Number of Steps", title = "Average Steps per Day Over 51 Day") +
+      labs(x ="Day", y="Average Number of Steps", title = "Average Steps per Day Over 53 Day") +
       geom_bar(stat="identity", fill= "white")  
-      
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
+```r
 summary(mystepsperday$steps[!mystepsperday$weekday])
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##    8821   10682   12130   12407   14443   15420
+```
+
+```r
 summary(mystepsperday$steps[mystepsperday$weekday])      
 ```
 
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##      41    7835   10304   10177   12847   21194
+```
 
-So we see the guy has been on average **more active on weekends** (mean 12407 steps > 10177). Althought the weekdays are much more varied (with min and max of 41 and 21,194 steps).
 
-But this comes from our previous (unprocessed) data analysis. Let's reuse the *myprocesseddata* with the filled-in values, and create a new factor variable in the dataset with two levels – “weekday” and “weekend”. 
+So we see the guy has been on average **more active on weekends** (mean 12,407 steps > 10,177). Althought the weekdays are much more varied (with min and max of 41 and 21,194 steps).
+
+But this comes from our previous (unprocessed) data analysis, we have only 53 days. As the assignment requested, let's reuse the *myprocesseddata* with the filled-in values, and create a new factor variable in the dataset with two levels – “weekday” and “weekend”. 
+
+We can add 2 columns in *myavginterval* to average the number of steps across respectively, weekdays and weekends. 
 
 
 ```r
-mydata$weekday <- !(weekdays(mydata$mydatetime) %in% c("Sunday", "Saturday"))
-myavginterval$stepsWeekday <-aggregate(steps ~ interval ,mean,data=mydata[mydata$weekday])$steps
-myavginterval$stepsWeekend <-aggregate(steps ~ interval ,mean,data=mydata[!mydata$weekday])$steps
+myprocesseddata$weekday <- as.factor(
+      ifelse(weekdays(myprocesseddata$mydatetime) %in% c("Sunday", "Saturday"),"weekend","weekday"))
+myavginterval$stepsWeekday <-aggregate(steps ~ interval ,mean,
+                                       data=myprocesseddata[myprocesseddata$weekday=="weekday"])$steps
+myavginterval$stepsWeekend <-aggregate(steps ~ interval ,mean,
+                                       data=myprocesseddata[myprocesseddata$weekday=="weekend"])$steps
 
 summary(myavginterval)
 ```
@@ -278,75 +303,57 @@ summary(myavginterval)
 ```
 ##     interval          steps              hour         stepsWeekday    
 ##  Min.   :   0.0   Min.   :  0.000   Min.   : 0.000   Min.   :  0.000  
-##  1st Qu.: 588.8   1st Qu.:  2.486   1st Qu.: 5.979   1st Qu.:  2.218  
-##  Median :1177.5   Median : 34.113   Median :11.958   Median : 23.974  
-##  Mean   :1177.5   Mean   : 37.383   Mean   :11.958   Mean   : 35.338  
-##  3rd Qu.:1766.2   3rd Qu.: 52.835   3rd Qu.:17.938   3rd Qu.: 51.872  
-##  Max.   :2355.0   Max.   :206.170   Max.   :23.917   Max.   :234.103  
+##  1st Qu.: 588.8   1st Qu.:  2.486   1st Qu.: 5.979   1st Qu.:  2.247  
+##  Median :1177.5   Median : 34.113   Median :11.958   Median : 25.803  
+##  Mean   :1177.5   Mean   : 37.383   Mean   :11.958   Mean   : 35.611  
+##  3rd Qu.:1766.2   3rd Qu.: 52.835   3rd Qu.:17.938   3rd Qu.: 50.854  
+##  Max.   :2355.0   Max.   :206.170   Max.   :23.917   Max.   :230.378  
 ##   stepsWeekend    
 ##  Min.   :  0.000  
-##  1st Qu.:  1.107  
-##  Median : 32.036  
-##  Mean   : 43.078  
-##  3rd Qu.: 75.571  
-##  Max.   :175.000
+##  1st Qu.:  1.241  
+##  Median : 32.340  
+##  Mean   : 42.366  
+##  3rd Qu.: 74.654  
+##  Max.   :166.639
 ```
 
 
-Make a panel plot containing a time series plot (i.e. 𝚝𝚢𝚙𝚎 = "𝚕") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+Make a panel plot containing a time series plot (i.e. 𝚝𝚢𝚙𝚎 = "𝚕") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
 
-Let's look at the activity patterns, and plot separately the average weekday and the average weekend day. 
-For this, we'll extend our *myavginterval* table with 2 columns, to include the averages for weekdays and for weekends.
 
 
 ```r
-mydata$weekday <- weekdays(mydata$mydatetime) %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
-myavginterval$stepsWeekday <-aggregate(steps ~ interval ,mean,data=mydata[mydata$weekday])$steps
-myavginterval$stepsWeekend <-aggregate(steps ~ interval ,mean,data=mydata[!mydata$weekday])$steps
-
-summary(myavginterval)
+ggplot(data=melt(myavginterval[c("hour","stepsWeekday","stepsWeekend")],id.vars="hour"), 
+       aes(x=hour, y=value, colour=variable)) +
+      facet_grid(variable ~.) + coord_cartesian(xlim = c(0,24)) +  geom_line(size =1) +          
+      labs(x ="Moment of the Day (in 24hours)", y="Average Number of Steps", 
+           title = "Average Steps per Moment of the Day")
 ```
 
-```
-##     interval          steps              hour         stepsWeekday    
-##  Min.   :   0.0   Min.   :  0.000   Min.   : 0.000   Min.   :  0.000  
-##  1st Qu.: 588.8   1st Qu.:  2.486   1st Qu.: 5.979   1st Qu.:  2.218  
-##  Median :1177.5   Median : 34.113   Median :11.958   Median : 23.974  
-##  Mean   :1177.5   Mean   : 37.383   Mean   :11.958   Mean   : 35.338  
-##  3rd Qu.:1766.2   3rd Qu.: 52.835   3rd Qu.:17.938   3rd Qu.: 51.872  
-##  Max.   :2355.0   Max.   :206.170   Max.   :23.917   Max.   :234.103  
-##   stepsWeekend    
-##  Min.   :  0.000  
-##  1st Qu.:  1.107  
-##  Median : 32.036  
-##  Mean   : 43.078  
-##  3rd Qu.: 75.571  
-##  Max.   :175.000
-```
+![](PA1_template_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+
+So, by comparing the blue line against the red line, we conclude that the **activity patterns are clearly different**. 
+It's even more obvious when we look at the difference between the red line and the blue line (Weekends-Weekdays), as follows:  
+
 
 ```r
-ggplot(data=melt(myavginterval[,names(myavginterval)!="interval"],id.vars="hour"), aes(x=hour, y = value, colour=variable)) +
-      coord_cartesian(xlim = c(0,24)) +  geom_line(size =1) +          
-      labs(x ="Moment of the Day (in 24hours)", y="Average Number of Steps", title = "Average Steps per Moment of the Day")
-```
-
-![](PA1_template_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
-
-```r
-ggplot(data=data.frame(hour=myavginterval$hour, stepsgap = myavginterval$stepsWeekend-myavginterval$stepsWeekday), aes(x=hour, y=stepsgap)) +
+ggplot(data=data.frame(hour=myavginterval$hour, 
+                       stepsgap = myavginterval$stepsWeekend-myavginterval$stepsWeekday), aes(x=hour, y=stepsgap)) +
       coord_cartesian(xlim = c(0,24)) +  geom_line(size =2) +          
       labs(x ="Moment of the Day (in 24hours)", y="Average Number of Steps", title = "Difference between Weekdays and Weekends in average Steps per Moment of the Day")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-12-2.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
-So, by comparing the blue line against the green line, we conclude that the **activity patterns are clearly different**. 
-It's even more obvious when we look at the difference (Weekends-Weekdays), with the black line. On weekends: 
+On weekends: 
 
 - the guy probably woke up later
-- he was more active during the day and in the evening
+- he was more active during the whole day and in the evening
 - he is marginally more active in the late evening (probably sitting in a bar...)
 
 
+
+------
+The end
 
 
